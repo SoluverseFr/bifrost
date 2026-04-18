@@ -25,7 +25,7 @@ RUN make build DYNAMIC=1 LOCAL=1 VERSION="${VERSION}" \
     && test -f /src/tmp/bifrost-http \
     && cp /src/tmp/bifrost-http /src/bifrost-http \
     && cd plugins/toolinjector \
-    && make build-test-plugin
+    && GOWORK=off make build-test-plugin
 
 FROM debian:bookworm-slim
 
