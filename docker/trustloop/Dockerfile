@@ -22,6 +22,8 @@ RUN case "${TARGETARCH}" in \
 COPY . /src/
 
 RUN make build DYNAMIC=1 LOCAL=1 VERSION="${VERSION}" \
+    && test -f /src/tmp/bifrost-http \
+    && cp /src/tmp/bifrost-http /src/bifrost-http \
     && cd plugins/toolinjector \
     && make build-test-plugin
 
@@ -43,7 +45,7 @@ RUN apt-get update \
     && mkdir -p /app/data \
     && chown -R appuser:appuser /app /home/appuser/.config
 
-COPY --from=builder /src/tmp/bifrost-http /app/main
+COPY --from=builder /src/bifrost-http /app/main
 COPY --from=builder /src/transports/docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --from=builder /src/plugins/toolinjector/build/tool_injector.so /opt/tool_injector.so
 
