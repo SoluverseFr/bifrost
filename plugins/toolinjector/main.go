@@ -350,8 +350,8 @@ func echoToolsShortCircuit(req *schemas.BifrostRequest) *schemas.LLMPluginShortC
 					},
 				},
 				ExtraFields: schemas.BifrostResponseExtraFields{
-					RequestType:    schemas.ChatCompletionRequest,
-					ModelRequested: req.ChatRequest.Model,
+					RequestType:            schemas.ChatCompletionRequest,
+					OriginalModelRequested: req.ChatRequest.Model,
 				},
 			},
 		},
