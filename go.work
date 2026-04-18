@@ -4,12 +4,14 @@ use (
 	./cli
 	./core
 	./framework
+	./plugins/compat
 	./plugins/governance
-	./plugins/litellmcompat
+	./plugins/jsonparser
 	./plugins/logging
 	./plugins/maxim
 	./plugins/mocker
 	./plugins/otel
+	./plugins/prompts
 	./plugins/semanticcache
 	./plugins/telemetry
 	./plugins/toolinjector

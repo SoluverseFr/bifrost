@@ -257,7 +257,7 @@ build: build-ui ## Build bifrost-http binary
 				-ldflags="-w -s -X main.Version=v$(VERSION)" \
 				-a -trimpath \
 				-o ../../tmp/bifrost-http \
-				.; \
+				. || exit $$?; \
 		else \
 			$(ECHO) "$(CYAN)Building for $$TARGET_OS/$$TARGET_ARCH with static linking...$(NC)"; \
 			cd transports/bifrost-http && CGO_ENABLED=1 GOOS=$$TARGET_OS GOARCH=$$TARGET_ARCH $(if $(LOCAL),,GOWORK=off) go build \
@@ -265,7 +265,7 @@ build: build-ui ## Build bifrost-http binary
 				-a -trimpath \
 				-tags "sqlite_static" \
 				-o ../../tmp/bifrost-http \
-				.; \
+				. || exit $$?; \
 		fi; \
 		$(ECHO) "$(GREEN)Built: tmp/bifrost-http (version: v$(VERSION))$(NC)"; \
 	elif [ "$$TARGET_OS" = "$$HOST_OS" ] && [ "$$TARGET_ARCH" = "$$HOST_ARCH" ]; then \
@@ -275,7 +275,7 @@ build: build-ui ## Build bifrost-http binary
 			-a -trimpath \
 			-tags "sqlite_static" \
 			-o ../../tmp/bifrost-http \
-			.; \
+			. || exit $$?; \
 		$(ECHO) "$(GREEN)Built: tmp/bifrost-http (version: v$(VERSION))$(NC)"; \
 	else \
 		$(ECHO) "$(YELLOW)Cross-compilation detected: $$HOST_OS/$$HOST_ARCH -> $$TARGET_OS/$$TARGET_ARCH$(NC)"; \

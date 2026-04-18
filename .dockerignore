@@ -64,6 +64,7 @@ tmp/
 temp/
 .tmp/
 
-# Go workspaces (local only)
-go.work
-go.work.sum
+# Go workspaces
+# Trustloop image builds rely on the workspace to compile local modules together.
+!go.work
+!go.work.sum
