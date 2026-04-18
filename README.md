@@ -49,6 +49,15 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 **That's it!** Your AI gateway is running with a web interface for visual configuration, real-time monitoring, and analytics.
 
+For Trustloop, the repository publishes a plugin-ready runtime image to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/soluversefr/bifrost:latest
+docker run -p 8080:8080 -v $(pwd)/data:/app/data ghcr.io/soluversefr/bifrost:latest
+```
+
+This image is built by the GitHub Actions workflow in this repository and includes the `tool-injector` plugin binary under `/opt/tool_injector.so`.
+
 **Complete Setup Guides:**
 
 - [Gateway Setup](https://docs.getbifrost.ai/quickstart/gateway/setting-up) - HTTP API deployment
