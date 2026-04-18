@@ -5,3 +5,5 @@
 The Trustloop runtime image is built from `docker/trustloop/Dockerfile` and must compile Bifrost against the repository's local Go modules, not against previously published module tags.
 
 This build therefore depends on the committed `go.work` file being present in the Docker build context. If the workspace is excluded from the context, `make build LOCAL=1` silently falls back to published module versions and can compile transport code against stale `core` or plugin APIs.
+
+The GitHub publication workflow for this image intentionally targets `linux/amd64` only. Trustloop currently deploys that architecture only, and keeping the workflow single-arch avoids Buildx multi-platform hangs during registry publication.
