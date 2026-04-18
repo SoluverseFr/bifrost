@@ -181,22 +181,22 @@ func TestBedrock(t *testing.T) {
 			{Provider: schemas.Bedrock, Model: "claude-4-sonnet"},
 			{Provider: schemas.Bedrock, Model: "claude-4.5-sonnet"},
 		},
-		EmbeddingModel:      "cohere.embed-v4:0",
-		RerankModel:         rerankModelARN,
-		ReasoningModel:      "claude-4.5-sonnet",
-		PromptCachingModel:  "claude-4.5-sonnet",
-		ImageEditModel:      "amazon.nova-canvas-v1:0",
-		ImageVariationModel: "amazon.nova-canvas-v1:0",
+		EmbeddingModel:           "cohere.embed-v4:0",
+		RerankModel:              rerankModelARN,
+		ReasoningModel:           "claude-4.5-sonnet",
+		PromptCachingModel:       "claude-4.5-sonnet",
+		ImageEditModel:           "amazon.nova-canvas-v1:0",
+		ImageVariationModel:      "amazon.nova-canvas-v1:0",
 		InterleavedThinkingModel: "global.anthropic.claude-opus-4-5-20251101-v1:0",
-		BatchExtraParams:        batchExtraParams,
-		FileExtraParams:         fileExtraParams,
+		BatchExtraParams:         batchExtraParams,
+		FileExtraParams:          fileExtraParams,
 		Scenarios: llmtests.TestScenarios{
-			TextCompletion:        false, // Not supported
-			SimpleChat:            true,
-			CompletionStream:      true,
-			MultiTurnConversation: true,
-			ToolCalls:             true,
-			ToolCallsStreaming:    true,
+			TextCompletion:             false, // Not supported
+			SimpleChat:                 true,
+			CompletionStream:           true,
+			MultiTurnConversation:      true,
+			ToolCalls:                  true,
+			ToolCallsStreaming:         true,
 			MultipleToolCalls:          true,
 			MultipleToolCallsStreaming: true,
 			End2EndToolCalling:    true,
@@ -228,6 +228,9 @@ func TestBedrock(t *testing.T) {
 			ImageVariation:        true,
 			StructuredOutputs:     true,
 			InterleavedThinking:  true,
+			EagerInputStreaming:  true, // fine-grained-tool-streaming-2025-05-14 (per B-header)
+			// ServerToolsViaOpenAIEndpoint: Bedrock does not support web_search / web_fetch /
+			// code_execution server tools per Table 20, so no cases would run. Left off.
 		},
 	}
 
@@ -3140,7 +3143,10 @@ func TestAnthropicOutputConfigFormatStillFallsBackToBudgetTokensForReasoning(t *
 	require.NotNil(t, result.Params)
 	require.NotNil(t, result.Params.Reasoning)
 	require.NotNil(t, result.Params.Reasoning.Effort)
-	assert.Equal(t, "medium", *result.Params.Reasoning.Effort)
+	// Effort is inferred from budget_tokens (2048) against the model-specific max output tokens
+	// (128K for claude-opus-4-6) minus Anthropic's minimum reasoning budget (1024). That ratio
+	// (~0.008) falls in the "low" bucket — see providerUtils.GetReasoningEffortFromBudgetTokens.
+	assert.Equal(t, "low", *result.Params.Reasoning.Effort)
 	require.NotNil(t, result.Params.Reasoning.MaxTokens)
 	assert.Equal(t, 2048, *result.Params.Reasoning.MaxTokens)
 	require.NotNil(t, result.Params.Reasoning.Summary)
@@ -4169,22 +4175,22 @@ func TestToBedrockInvokeMessagesStreamResponse_NoDuplicateContentBlockStop(t *te
 		{
 			Type:         schemas.ResponsesStreamResponseTypeOutputTextDone,
 			ContentIndex: &contentIdx,
-			ExtraFields:  schemas.BifrostResponseExtraFields{ModelRequested: model},
+			ExtraFields:  schemas.BifrostResponseExtraFields{OriginalModelRequested: model},
 		},
 		{
 			Type:         schemas.ResponsesStreamResponseTypeContentPartDone,
 			ContentIndex: &contentIdx,
-			ExtraFields:  schemas.BifrostResponseExtraFields{ModelRequested: model},
+			ExtraFields:  schemas.BifrostResponseExtraFields{OriginalModelRequested: model},
 		},
 		{
 			Type:         schemas.ResponsesStreamResponseTypeOutputItemDone,
 			ContentIndex: &contentIdx,
-			ExtraFields:  schemas.BifrostResponseExtraFields{ModelRequested: model},
+			ExtraFields:  schemas.BifrostResponseExtraFields{OriginalModelRequested: model},
 		},
 	}
 
 	type bedrockChunk struct {
-		InvokeModelRawChunk []byte `json:"invokeModelRawChunk"`
+		InvokeModelRawChunks [][]byte `json:"invokeModelRawChunks"`
 	}
 
 	var stopCount int
@@ -4198,9 +4204,10 @@ func TestToBedrockInvokeMessagesStreamResponse_NoDuplicateContentBlockStop(t *te
 		require.NoError(t, err)
 		var chunk bedrockChunk
 		require.NoError(t, json.Unmarshal(raw, &chunk))
-		if len(chunk.InvokeModelRawChunk) > 0 &&
-			strings.Contains(string(chunk.InvokeModelRawChunk), "content_block_stop") {
-			stopCount++
+		for _, rawChunk := range chunk.InvokeModelRawChunks {
+			if strings.Contains(string(rawChunk), "content_block_stop") {
+				stopCount++
+			}
 		}
 	}
 

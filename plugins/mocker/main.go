@@ -945,7 +945,7 @@ func (p *MockerPlugin) generateSuccessShortCircuit(req *schemas.BifrostRequest, 
 			ExtraFields: schemas.BifrostResponseExtraFields{
 				RequestType:    req.RequestType,
 				Provider:       provider,
-				ModelRequested: model,
+				OriginalModelRequested: model,
 				Latency:        int64(time.Since(startTime).Milliseconds()),
 			},
 		}
@@ -969,7 +969,7 @@ func (p *MockerPlugin) generateSuccessShortCircuit(req *schemas.BifrostRequest, 
 			ExtraFields: schemas.BifrostResponseExtraFields{
 				RequestType:    schemas.ResponsesRequest,
 				Provider:       provider,
-				ModelRequested: model,
+				OriginalModelRequested: model,
 				Latency:        int64(time.Since(startTime).Milliseconds()),
 			},
 		}
@@ -997,7 +997,7 @@ func (p *MockerPlugin) generateSuccessShortCircuit(req *schemas.BifrostRequest, 
 			ExtraFields: schemas.BifrostResponseExtraFields{
 				RequestType:    schemas.ResponsesStreamRequest,
 				Provider:       provider,
-				ModelRequested: model,
+				OriginalModelRequested: model,
 				Latency:        int64(time.Since(startTime).Milliseconds()),
 			},
 		}
@@ -1051,7 +1051,7 @@ func (p *MockerPlugin) generateErrorShortCircuit(req *schemas.BifrostRequest, re
 		ExtraFields: schemas.BifrostErrorExtraFields{
 			RequestType:    req.RequestType,
 			Provider:       provider,
-			ModelRequested: model,
+			OriginalModelRequested: model,
 		},
 	}
 
@@ -1175,7 +1175,7 @@ func (p *MockerPlugin) handleDefaultBehavior(req *schemas.BifrostRequest) (*sche
 					ExtraFields: schemas.BifrostResponseExtraFields{
 						RequestType:    schemas.ChatCompletionRequest,
 						Provider:       provider,
-						ModelRequested: model,
+						OriginalModelRequested: model,
 					},
 				},
 			},

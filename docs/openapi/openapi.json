@@ -28815,6 +28815,10 @@
                             "type": "integer",
                             "description": "Number of members in the team"
                           },
+                          "virtual_key_count": {
+                            "type": "integer",
+                            "description": "Number of virtual keys assigned to the team"
+                          },
                           "created_at": {
                             "type": "string",
                             "format": "date-time"
@@ -28976,6 +28980,10 @@
                     "member_count": {
                       "type": "integer",
                       "description": "Number of members in the team"
+                    },
+                    "virtual_key_count": {
+                      "type": "integer",
+                      "description": "Number of virtual keys assigned to the team"
                     },
                     "created_at": {
                       "type": "string",
@@ -53884,6 +53892,8 @@
           },
           "virtual_keys": {
             "type": "array",
+            "nullable": true,
+            "description": "Virtual keys assigned to this team. This field may be omitted or returned as null in some responses (for example, when a team is embedded inside a virtual-key response) to avoid nested `virtual_keys` recursion.\n",
             "items": {
               "$ref": "#/components/schemas/VirtualKey"
             }
