@@ -2,6 +2,8 @@
 
 PLUGIN_NAME = tool_injector
 OUTPUT_DIR = build
+OUTPUT_ABS = $(abspath $(OUTPUT))
+GO ?= go
 
 # Platform detection
 UNAME_S := $(shell uname -s)
@@ -28,7 +30,7 @@ OUTPUT = $(OUTPUT_DIR)/$(PLUGIN_NAME)$(PLUGIN_EXT)
 build: ## Build the plugin for current platform
 	@echo "Building plugin for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(OUTPUT_DIR)
-	CGO_ENABLED=1 GOOS=$(PLATFORM) GOARCH=$(ARCH) go build -buildmode=plugin -a -trimpath -tags "sqlite_static" -o $(OUTPUT) main.go
+	CGO_ENABLED=1 GOOS=$(PLATFORM) GOARCH=$(ARCH) $(GO) build -buildmode=plugin -a -trimpath -o "$(OUTPUT_ABS)" main.go
 	@echo "Plugin built successfully: $(OUTPUT)"
 
 build-test-plugin: build
