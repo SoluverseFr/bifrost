@@ -1,0 +1,17 @@
+go 1.26.2
+
+use (
+	./cli
+	./core
+	./framework
+	./plugins/governance
+	./plugins/litellmcompat
+	./plugins/logging
+	./plugins/maxim
+	./plugins/mocker
+	./plugins/otel
+	./plugins/semanticcache
+	./plugins/telemetry
+	./plugins/toolinjector
+	./transports
+)

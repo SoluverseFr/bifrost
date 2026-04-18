@@ -1,0 +1,93 @@
+{
+	"info": {
+		"_postman_id": "tool-injector-test-id",
+		"name": "Bifrost Tool Injector Test",
+		"description": "Tests raw tool injection and provider-based filtering for LLM requests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Verify Raw Tool Injection for Matching Provider",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Raw tool type was echoed back', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('choices');",
+							"    var content = jsonData.choices[0].message.content;",
+							"    pm.expect(content).to.include('openrouter:web_search');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"model\": \"openrouter/google/gemini-3-flash-preview\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"What tools were injected?\"}]\n}"
+				},
+				"url": "{{base_url}}/v1/chat/completions"
+			},
+			"response": []
+		},
+		{
+			"name": "Verify Non-Matching Provider Skips Injection",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Raw tool type was not injected', function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('choices');",
+							"    var content = jsonData.choices[0].message.content;",
+							"    pm.expect(content).to.not.include('openrouter:web_search');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"model\": \"ollama/llama3.2\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"Say hello in one short sentence.\"}]\n}"
+				},
+				"url": "{{base_url}}/v1/chat/completions"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8080",
+			"type": "string"
+		}
+	]
+}

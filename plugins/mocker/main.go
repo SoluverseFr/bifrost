@@ -66,6 +66,7 @@ type MockerPlugin struct {
 // MockerConfig defines the overall configuration for the mocker plugin
 type MockerConfig struct {
 	Enabled         bool       `json:"enabled"`          // Enable/disable the mocker plugin
+	Mode            string     `json:"mode"`             // Optional test mode. "echo-tools" echoes injected tool names in the response.
 	GlobalLatency   *Latency   `json:"global_latency"`   // Global latency settings applied to all rules (can be overridden per rule)
 	Rules           []MockRule `json:"rules"`            // List of mock rules to be evaluated in priority order
 	DefaultBehavior string     `json:"default_behavior"` // Action when no rules match: "passthrough", "error", or "success"
@@ -493,6 +494,93 @@ func (p *MockerPlugin) HTTPTransportStreamChunkHook(ctx *schemas.BifrostContext,
 	return chunk, nil
 }
 
+func (p *MockerPlugin) echoToolsShortCircuit(req *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error) {
+	toolNames := make([]string, 0, 4)
+
+	switch {
+	case req.ChatRequest != nil && req.ChatRequest.Params != nil:
+		for _, tool := range req.ChatRequest.Params.Tools {
+			if tool.Function != nil && tool.Function.Name != "" {
+				toolNames = append(toolNames, tool.Function.Name)
+			}
+		}
+	case req.ResponsesRequest != nil && req.ResponsesRequest.Params != nil:
+		for _, tool := range req.ResponsesRequest.Params.Tools {
+			if tool.Name != nil && *tool.Name != "" {
+				toolNames = append(toolNames, *tool.Name)
+			}
+		}
+	}
+
+	message := "tools:"
+	if len(toolNames) > 0 {
+		message = message + " " + strings.Join(toolNames, ", ")
+	} else {
+		message = message + " none"
+	}
+
+	shortCircuit := &schemas.LLMPluginShortCircuit{}
+
+	switch {
+	case req.ChatRequest != nil:
+		finishReason := "stop"
+		shortCircuit.Response = &schemas.BifrostResponse{
+			ChatResponse: &schemas.BifrostChatResponse{
+				Model: req.ChatRequest.Model,
+				Usage: &schemas.BifrostLLMUsage{
+					PromptTokens:     1,
+					CompletionTokens: 1,
+					TotalTokens:      2,
+				},
+				Choices: []schemas.BifrostResponseChoice{
+					{
+						Index: 0,
+						ChatNonStreamResponseChoice: &schemas.ChatNonStreamResponseChoice{
+							Message: &schemas.ChatMessage{
+								Role: schemas.ChatMessageRoleAssistant,
+								Content: &schemas.ChatMessageContent{
+									ContentStr: &message,
+								},
+							},
+						},
+						FinishReason: &finishReason,
+					},
+				},
+				ExtraFields: schemas.BifrostResponseExtraFields{
+					RequestType:    schemas.ChatCompletionRequest,
+					ModelRequested: req.ChatRequest.Model,
+				},
+			},
+		}
+	case req.ResponsesRequest != nil:
+		shortCircuit.Response = &schemas.BifrostResponse{
+			ResponsesResponse: &schemas.BifrostResponsesResponse{
+				CreatedAt: int(time.Now().Unix()),
+				Output: []schemas.ResponsesMessage{
+					{
+						Role: bifrost.Ptr(schemas.ResponsesInputMessageRoleAssistant),
+						Content: &schemas.ResponsesMessageContent{
+							ContentStr: &message,
+						},
+						Type: bifrost.Ptr(schemas.ResponsesMessageTypeMessage),
+					},
+				},
+				Usage: &schemas.ResponsesResponseUsage{
+					InputTokens:  1,
+					OutputTokens: 1,
+					TotalTokens:  2,
+				},
+				ExtraFields: schemas.BifrostResponseExtraFields{
+					RequestType:    schemas.ResponsesRequest,
+					ModelRequested: req.ResponsesRequest.Model,
+				},
+			},
+		}
+	}
+
+	return req, shortCircuit, nil
+}
+
 // PreLLMHook intercepts requests and applies mocking rules based on configuration
 // This is called before the actual provider request and can short-circuit the flow
 func (p *MockerPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.BifrostRequest) (*schemas.BifrostRequest, *schemas.LLMPluginShortCircuit, error) {
@@ -504,6 +592,10 @@ func (p *MockerPlugin) PreLLMHook(ctx *schemas.BifrostContext, req *schemas.Bifr
 	skipMocker, ok := ctx.Value(schemas.BifrostContextKey("skip-mocker")).(bool)
 	if ok && skipMocker {
 		return req, nil, nil
+	}
+
+	if strings.EqualFold(p.config.Mode, "echo-tools") {
+		return p.echoToolsShortCircuit(req)
 	}
 
 	if req.RequestType != schemas.ChatCompletionRequest &&
