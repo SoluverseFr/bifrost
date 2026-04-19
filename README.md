@@ -55,6 +55,8 @@ docker pull ghcr.io/soluversefr/bifrost:latest
 docker run -p 8080:8080 -v $(pwd)/data:/app/data ghcr.io/soluversefr/bifrost:latest
 ```
 
+The publication workflow also accepts explicit Trustloop image versions. Trigger it with a git tag such as `trustloop/v0.1.1`, or dispatch it manually with `version=0.1.1`, to publish `ghcr.io/soluversefr/bifrost:0.1.1` alongside `latest`.
+
 This image is built by the GitHub Actions workflow in this repository and includes:
 
 - `tool-injector` under `/opt/tool_injector.so`

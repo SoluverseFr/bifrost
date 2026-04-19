@@ -6,4 +6,6 @@ The Trustloop runtime image is built from `docker/trustloop/Dockerfile` and must
 
 This build therefore depends on the committed `go.work` file being present in the Docker build context. If the workspace is excluded from the context, `make build LOCAL=1` silently falls back to published module versions and can compile transport code against stale `core` or plugin APIs.
 
+The same rule applies to the bundled dynamic plugins copied into the Trustloop image. They must be built with the workspace still enabled; forcing `GOWORK=off` for `tool-injector` or `openrouter-provider-routing` can produce `.so` files that compile successfully but fail at runtime with `plugin was built with a different version of package ...`.
+
 The GitHub publication workflow for this image intentionally targets `linux/amd64` only. Trustloop currently deploys that architecture only, and keeping the workflow single-arch avoids Buildx multi-platform hangs during registry publication.
