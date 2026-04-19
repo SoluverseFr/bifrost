@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Fixed `openrouter-provider-routing` so configs that target a custom OpenRouter provider name such as `openrouter_trustloop` also apply on OpenAI-compatible requests that still enter the plugin as `openai` before final provider resolution.
+- Added unit coverage for custom OpenRouter provider matching on `responses` requests, to prevent regressions on OpenAI-compatible Trustloop-style routing.
 - Fixed the Trustloop runtime image to build bundled dynamic plugins (`tool-injector`, `openrouter-provider-routing`) with the repository workspace enabled, so they stay ABI-compatible with the locally-built `bifrost-http` binary instead of drifting to published module versions.
 - Fixed the Trustloop image build to include the committed `go.work` workspace in the Docker context so transport builds resolve local `core` and plugin modules instead of published module versions.
 - Aligned stale call sites and schema field names across `core`, transport handlers, and bundled plugins so the Trustloop runtime image builds successfully again.

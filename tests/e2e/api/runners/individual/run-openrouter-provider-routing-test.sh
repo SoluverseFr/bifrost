@@ -111,27 +111,59 @@ class Handler(BaseHTTPRequestHandler):
         with open(body_path, "wb") as fh:
             fh.write(body_bytes)
 
-        body = {
-            "id": f"chatcmpl-mock-{counter['value']}",
-            "object": "chat.completion",
-            "created": 1710000000,
-            "model": "mock-model",
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
+        if self.path.endswith("/responses"):
+            body = {
+                "id": f"resp-mock-{counter['value']}",
+                "object": "response",
+                "created_at": 1710000000,
+                "model": "mock-model",
+                "status": "completed",
+                "output": [
+                    {
+                        "id": f"msg-mock-{counter['value']}",
+                        "type": "message",
+                        "status": "completed",
                         "role": "assistant",
-                        "content": f"mock upstream response {counter['value']}"
-                    },
-                    "finish_reason": "stop"
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": f"mock responses output {counter['value']}",
+                                "annotations": []
+                            }
+                        ]
+                    }
+                ],
+                "tools": [],
+                "parallel_tool_calls": True,
+                "text": {"format": {"type": "text"}},
+                "usage": {
+                    "input_tokens": 1,
+                    "output_tokens": 1,
+                    "total_tokens": 2
                 }
-            ],
-            "usage": {
-                "prompt_tokens": 1,
-                "completion_tokens": 1,
-                "total_tokens": 2
             }
-        }
+        else:
+            body = {
+                "id": f"chatcmpl-mock-{counter['value']}",
+                "object": "chat.completion",
+                "created": 1710000000,
+                "model": "mock-model",
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": f"mock upstream response {counter['value']}"
+                        },
+                        "finish_reason": "stop"
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "total_tokens": 2
+                }
+            }
         payload = json.dumps(body).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -222,19 +254,34 @@ curl -fsS "${BASE_URL}/v1/chat/completions" \
 	  "messages": [{"role": "user", "content": "hello"}]
 	}' >"$NO_MATCH_RESPONSE"
 
+echo "Sending matching OpenRouter responses request..."
+MATCH_RESPONSES_RESPONSE="$APP_DIR/matching-responses-response.json"
+curl -fsS "${BASE_URL}/v1/responses" \
+	-H "Content-Type: application/json" \
+	-d '{
+	  "model": "openrouter/openai/gpt-5-mini",
+	  "input": "hello"
+	}' >"$MATCH_RESPONSES_RESPONSE"
+
 MATCH_REQUEST="$REQUEST_DIR/request-1.json"
 NO_MATCH_REQUEST="$REQUEST_DIR/request-2.json"
+MATCH_RESPONSES_REQUEST="$REQUEST_DIR/request-3.json"
 
 [ -f "$MATCH_REQUEST" ] || fail "missing captured upstream request for matching model"
 [ -f "$NO_MATCH_REQUEST" ] || fail "missing captured upstream request for non-matching model"
+[ -f "$MATCH_RESPONSES_REQUEST" ] || fail "missing captured upstream request for matching responses model"
 
 jq -e '.choices[0].message.content == "mock upstream response 1"' "$MATCH_RESPONSE" >/dev/null || fail "unexpected matching response body"
 jq -e '.choices[0].message.content == "mock upstream response 2"' "$NO_MATCH_RESPONSE" >/dev/null || fail "unexpected non-matching response body"
+jq -e '.output[0].content[0].text == "mock responses output 3"' "$MATCH_RESPONSES_RESPONSE" >/dev/null || fail "unexpected matching responses body"
 
 jq -e '.provider.only == ["azure"]' "$MATCH_REQUEST" >/dev/null || fail "matching request did not inject provider.only"
 jq -e '.provider.allow_fallbacks == false' "$MATCH_REQUEST" >/dev/null || fail "matching request did not inject allow_fallbacks=false"
 jq -e '.provider.require_parameters == true' "$MATCH_REQUEST" >/dev/null || fail "matching request did not inject require_parameters=true"
 
 jq -e 'has("provider") | not' "$NO_MATCH_REQUEST" >/dev/null || fail "non-matching request unexpectedly injected provider policy"
+jq -e '.provider.only == ["azure"]' "$MATCH_RESPONSES_REQUEST" >/dev/null || fail "matching responses request did not inject provider.only"
+jq -e '.provider.allow_fallbacks == false' "$MATCH_RESPONSES_REQUEST" >/dev/null || fail "matching responses request did not inject allow_fallbacks=false"
+jq -e '.provider.require_parameters == true' "$MATCH_RESPONSES_REQUEST" >/dev/null || fail "matching responses request did not inject require_parameters=true"
 
 echo "OpenRouter provider routing e2e test passed."

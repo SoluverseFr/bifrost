@@ -70,6 +70,64 @@ func TestPreLLMHookFiltersByProviderAndModel(t *testing.T) {
 		assert.Nil(t, ctx.Value(schemas.BifrostContextKeyPassthroughExtraParams))
 	})
 
+	t.Run("matches custom openrouter provider on openai-compatible request", func(t *testing.T) {
+		customPlugin, err := NewOpenRouterRoutingPlugin(OpenRouterRoutingConfig{
+			Providers: []string{"openrouter_trustloop"},
+			Rules: []RoutingRule{
+				{
+					Models: []string{"google/gemma-4-31b-it"},
+					Provider: &ProviderPreferences{
+						Only: []string{"parasail"},
+					},
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		ctx := schemas.NewBifrostContext(nil, schemas.NoDeadline)
+		req := &schemas.BifrostRequest{
+			ResponsesRequest: &schemas.BifrostResponsesRequest{
+				Provider: schemas.OpenAI,
+				Model:    "google/gemma-4-31b-it",
+			},
+		}
+
+		out, short, err := customPlugin.PreLLMHook(ctx, req)
+		require.NoError(t, err)
+		require.Nil(t, short)
+		require.NotNil(t, out.ResponsesRequest.Params)
+		require.NotNil(t, out.ResponsesRequest.Params.ExtraParams)
+
+		providerMap, ok := out.ResponsesRequest.Params.ExtraParams["provider"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, []string{"parasail"}, providerMap["only"])
+		assert.Equal(t, true, ctx.Value(schemas.BifrostContextKeyPassthroughExtraParams))
+	})
+
+	t.Run("does not match unrelated custom provider on openai-compatible request", func(t *testing.T) {
+		customPlugin, err := NewOpenRouterRoutingPlugin(OpenRouterRoutingConfig{
+			Providers: []string{"custom-trustloop"},
+			Provider: &ProviderPreferences{
+				Only: []string{"parasail"},
+			},
+		})
+		require.NoError(t, err)
+
+		ctx := schemas.NewBifrostContext(nil, schemas.NoDeadline)
+		req := &schemas.BifrostRequest{
+			ResponsesRequest: &schemas.BifrostResponsesRequest{
+				Provider: schemas.OpenAI,
+				Model:    "google/gemma-4-31b-it",
+			},
+		}
+
+		out, short, err := customPlugin.PreLLMHook(ctx, req)
+		require.NoError(t, err)
+		require.Nil(t, short)
+		assert.Nil(t, out.ResponsesRequest.Params)
+		assert.Nil(t, ctx.Value(schemas.BifrostContextKeyPassthroughExtraParams))
+	})
+
 	t.Run("non matching model", func(t *testing.T) {
 		ctx := schemas.NewBifrostContext(nil, schemas.NoDeadline)
 		req := &schemas.BifrostRequest{

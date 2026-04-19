@@ -214,7 +214,26 @@ func providerMatches(allowed []string, provider schemas.ModelProvider) bool {
 			return true
 		}
 	}
+	if !isOpenAICompatibleRequestProvider(provider) {
+		return false
+	}
+	for _, candidate := range allowed {
+		// Custom OpenRouter providers commonly sit behind an OpenAI-compatible
+		// endpoint, so the request still enters PreLLMHook as "openai" before the
+		// transport resolves the final custom provider key.
+		if isCustomOpenRouterProvider(candidate) {
+			return true
+		}
+	}
 	return false
+}
+
+func isOpenAICompatibleRequestProvider(provider schemas.ModelProvider) bool {
+	return provider == schemas.OpenAI || provider == schemas.Azure
+}
+
+func isCustomOpenRouterProvider(provider string) bool {
+	return !schemas.IsKnownProvider(provider) && strings.Contains(provider, "openrouter")
 }
 
 func ruleMatches(patterns []string, model string) bool {

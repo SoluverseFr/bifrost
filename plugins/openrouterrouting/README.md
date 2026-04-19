@@ -103,3 +103,4 @@ Pattern examples:
 - The plugin skips requests that use `RawRequestBody`, because Bifrost forwards those bodies as-is.
 - The plugin enables `BifrostContextKeyPassthroughExtraParams` so the injected `provider` object is merged into the final provider request body.
 - This plugin controls OpenRouter routing preferences, not Bifrost provider selection itself.
+- For custom OpenRouter providers exposed through an OpenAI-compatible transport, requests can still enter `PreLLMHook` as `openai` before the final provider key is resolved. Provider names that contain `openrouter` (for example `openrouter_trustloop`) are treated as compatible with these OpenAI-compatible requests.
