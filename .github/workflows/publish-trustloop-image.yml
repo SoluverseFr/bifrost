@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Optional Trustloop image version tag (example: 0.1.1)
+        description: "Optional Trustloop image version tag (example: 0.1.1)"
         required: false
         type: string
 
@@ -40,8 +40,9 @@ jobs:
 
       - name: Compute image tags
         id: tags
+        env:
+          VERSION_INPUT: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || '' }}
         run: |
-          VERSION_INPUT="${{ inputs.version }}"
           VERSION_TAG=""
 
           if [ -n "$VERSION_INPUT" ]; then
