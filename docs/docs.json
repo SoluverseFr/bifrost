@@ -227,7 +227,8 @@
                 "icon": "puzzle-piece",
                 "pages": [
                   "features/plugins/mocker",
-                  "features/plugins/jsonparser"
+                  "features/plugins/jsonparser",
+                  "features/plugins/tool-injector"
                 ]
               }
             ]

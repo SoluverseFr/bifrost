@@ -1,0 +1,241 @@
+---
+title: "Tool Injector"
+description: "Inject static tools into chat completion requests before they reach the upstream provider."
+icon: "screwdriver-wrench"
+---
+
+## Overview
+
+The Tool Injector plugin adds one or more tools to outgoing **chat completion** requests in Bifrost.
+
+It is useful when you want to:
+
+- Force a fixed set of tools on selected providers
+- Add provider-native tool types without changing every client request
+- Standardize function tools exposed to applications behind Bifrost
+- Debug the final tool list seen by the model before the upstream call happens
+
+The plugin runs in `PreLLMHook`, merges its configured tools into `req.ChatRequest.Params.Tools`, and can optionally short-circuit the request to echo the final tool list.
+
+## What It Supports
+
+The plugin currently supports two injection styles:
+
+1. **Function tools**
+   Standard OpenAI-compatible tools with `name`, `description`, and `parameters`.
+
+2. **Raw tool types**
+   Provider-native tool identifiers forwarded as a raw `type` string, for example `openrouter:web_search`.
+
+If a tool with the same identity already exists on the request, the injected version replaces it:
+
+- function tools are deduplicated by `function.name`
+- raw tools are deduplicated by `type`
+
+## Quick Start
+
+If you use the Trustloop runtime image published from this repository, the plugin binary is already available at `/opt/tool_injector.so`.
+
+```json
+{
+  "plugins": [
+    {
+      "name": "tool-injector",
+      "path": "/opt/tool_injector.so",
+      "enabled": true,
+      "config": {
+        "type": "openrouter:web_search",
+        "providers": ["openrouter"]
+      }
+    }
+  ]
+}
+```
+
+With this configuration, every chat completion request routed to the `openrouter` provider receives the `openrouter:web_search` tool automatically.
+
+## Function Tool Example
+
+When `type` is omitted, the plugin defaults to `function`.
+
+```json
+{
+  "plugins": [
+    {
+      "name": "tool-injector",
+      "path": "./plugins/toolinjector/build/tool_injector.so",
+      "enabled": true,
+      "config": {
+        "providers": ["openai", "openrouter"],
+        "tools": [
+          {
+            "name": "get_weather",
+            "description": "Return the current weather for a city.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "type": "string",
+                  "description": "City name"
+                }
+              },
+              "required": ["city"]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+## Multiple Tools
+
+Use `tools` to inject multiple entries in order:
+
+```json
+{
+  "plugins": [
+    {
+      "name": "tool-injector",
+      "path": "./plugins/toolinjector/build/tool_injector.so",
+      "enabled": true,
+      "config": {
+        "providers": ["openrouter"],
+        "tools": [
+          {
+            "type": "openrouter:web_search"
+          },
+          {
+            "name": "summarize_sources",
+            "description": "Summarize source material returned by search.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "urls": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+`custom` is also accepted as an alias for `tools`, but `tools` is the preferred field name for new configs.
+
+## Provider Filtering
+
+`providers` is optional. When omitted, the plugin applies to every chat completion request. When present, the provider names are matched against the resolved Bifrost provider on the request, for example:
+
+- `openai`
+- `openrouter`
+- `ollama`
+
+Matching is case-insensitive.
+
+## Debugging with `echo_tools`
+
+Set `echo_tools: true` to stop before the upstream provider call and return a synthetic assistant response listing the tools visible on the request after injection.
+
+```json
+{
+  "plugins": [
+    {
+      "name": "tool-injector",
+      "path": "/opt/tool_injector.so",
+      "enabled": true,
+      "config": {
+        "type": "openrouter:web_search",
+        "providers": ["openrouter"],
+        "echo_tools": true
+      }
+    }
+  ]
+}
+```
+
+Typical response content:
+
+```text
+tools: openrouter:web_search
+```
+
+This mode is mainly intended for validation and automated tests.
+
+## Configuration Shapes
+
+The plugin accepts either a single tool shorthand or a multi-tool object.
+
+### Single Tool Shorthand
+
+```json
+{
+  "type": "openrouter:web_search",
+  "providers": ["openrouter"]
+}
+```
+
+Or for a function tool:
+
+```json
+{
+  "name": "get_weather",
+  "description": "Return the current weather for a city.",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}
+```
+
+### Multi-Tool Form
+
+```json
+{
+  "tools": [
+    {
+      "type": "openrouter:web_search"
+    },
+    {
+      "name": "get_weather",
+      "description": "Return the current weather for a city.",
+      "parameters": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "providers": ["openrouter"],
+  "echo_tools": false
+}
+```
+
+## Limitations
+
+- The plugin only acts on **chat completion** requests. It does not inject tools into the Responses API path.
+- Raw provider-native tools are forwarded by `type`. Variant-specific server-tool fields are not configured by this plugin today.
+- Native Go plugins require a dynamically linked Bifrost binary. See [Building a Dynamic Binary](/plugins/building-dynamic-binary).
+
+## Build From Source
+
+From the repository root:
+
+```bash
+cd plugins/toolinjector
+make build
+```
+
+This produces `build/tool_injector.so`.
+
+An end-to-end test runner is also available:
+
+```bash
+tests/e2e/api/runners/individual/run-tool-injector-test.sh
+```

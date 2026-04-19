@@ -57,6 +57,8 @@ docker run -p 8080:8080 -v $(pwd)/data:/app/data ghcr.io/soluversefr/bifrost:lat
 
 This image is built by the GitHub Actions workflow in this repository and includes the `tool-injector` plugin binary under `/opt/tool_injector.so`.
 
+Plugin documentation is available in [docs/features/plugins/tool-injector.mdx](./docs/features/plugins/tool-injector.mdx).
+
 **Complete Setup Guides:**
 
 - [Gateway Setup](https://docs.getbifrost.ai/quickstart/gateway/setting-up) - HTTP API deployment
@@ -141,7 +143,8 @@ bifrost/
 │   ├── maxim/           # Maxim's observability integration
 │   ├── mocker/          # Mock responses for testing and development
 │   ├── semanticcache/   # Intelligent response caching
-│   └── telemetry/       # Monitoring and observability
+│   ├── telemetry/       # Monitoring and observability
+│   └── toolinjector/    # Inject static tools into chat completion requests
 ├── docs/                # Documentation and guides
 └── tests/               # Comprehensive test suites
 ```
