@@ -11,6 +11,7 @@ use (
 	./plugins/maxim
 	./plugins/mocker
 	./plugins/otel
+	./plugins/openrouterrouting
 	./plugins/prompts
 	./plugins/semanticcache
 	./plugins/telemetry
