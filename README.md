@@ -55,7 +55,10 @@ docker pull ghcr.io/soluversefr/bifrost:latest
 docker run -p 8080:8080 -v $(pwd)/data:/app/data ghcr.io/soluversefr/bifrost:latest
 ```
 
-This image is built by the GitHub Actions workflow in this repository and includes the `tool-injector` plugin binary under `/opt/tool_injector.so`.
+This image is built by the GitHub Actions workflow in this repository and includes:
+
+- `tool-injector` under `/opt/tool_injector.so`
+- `openrouter-provider-routing` under `/opt/openrouter_provider_routing.so`
 
 Plugin documentation is available in [docs/features/plugins/tool-injector.mdx](./docs/features/plugins/tool-injector.mdx).
 

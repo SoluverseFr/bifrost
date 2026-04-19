@@ -25,6 +25,8 @@ RUN make build DYNAMIC=1 LOCAL=1 VERSION="${VERSION}" \
     && test -f /src/tmp/bifrost-http \
     && cp /src/tmp/bifrost-http /src/bifrost-http \
     && cd plugins/toolinjector \
+    && GOWORK=off make build-test-plugin \
+    && cd /src/plugins/openrouterrouting \
     && GOWORK=off make build-test-plugin
 
 FROM debian:bookworm-slim
@@ -48,9 +50,10 @@ RUN apt-get update \
 COPY --from=builder /src/bifrost-http /app/main
 COPY --from=builder /src/transports/docker-entrypoint.sh /app/docker-entrypoint.sh
 COPY --from=builder /src/plugins/toolinjector/build/tool_injector.so /opt/tool_injector.so
+COPY --from=builder /src/plugins/openrouterrouting/build/openrouter_provider_routing.so /opt/openrouter_provider_routing.so
 
 RUN chmod +x /app/docker-entrypoint.sh \
-    && chmod 0644 /opt/tool_injector.so
+    && chmod 0644 /opt/tool_injector.so /opt/openrouter_provider_routing.so
 
 USER appuser
 
